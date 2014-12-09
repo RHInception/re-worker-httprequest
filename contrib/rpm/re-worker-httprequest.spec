@@ -19,7 +19,7 @@ Url: https://github.com/rhinception/re-worker-httprequest
 
 BuildArch: noarch
 BuildRequires: python2-devel, python-setuptools
-Requires: re-worker
+Requires: re-worker, python-requests
 
 %description
 An HTTP Request worker for Winternewt which allows for specific

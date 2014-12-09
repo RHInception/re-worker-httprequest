@@ -17,6 +17,8 @@
 HTTP Request worker.
 """
 
+import requests
+
 from reworker.worker import Worker
 
 
@@ -33,11 +35,54 @@ class HTTPRequestWorker(Worker):
     """
 
     #: allowed subcommands
-    subcommands = ()
+    subcommands = ('Get', )
     dynamic = []
 
     # Subcommand methods
-    # TODO: Implement
+    def request_get(self, body, corr_id, output):
+        """
+        Executes an HTTP GET request.
+
+        Parameters:
+
+        * body: The message body structure
+        * corr_id: The correlation id of the message
+        * output: The output object back to the user
+        """
+        # Get needed variables
+        params = body.get('parameters', {})
+
+        try:
+            url = params['url']
+            response = requests.get(url)
+            self._check_code(response.status_code, params)
+            return 'URL returned %s as expected.' % response.status_code
+        except requests.ConnectionError, ce:
+            self.app_logger.warn(
+                'Unable to connect to URL %s. Error: %s' % (url, ce))
+            raise HTTPRequestWorkerError(
+                'Could not connect to the requested URL.')
+        except KeyError, ke:
+            raise HTTPRequestWorkerError(
+                'Missing input %s' % ke)
+
+    def _check_code(self, response_code, params):
+        """
+        Raises an HTTPRequestWorkerError if the expectation isn't met.\
+
+        Parameters:
+        * response_code: The response code that came back from the request
+        * params: The parameters passed into the the subcommand method
+        """
+        expected_code = int(params.get('code', 200))
+        response_code = int(response_code)
+
+        if response_code != expected_code:
+            self.app_logger.debug('%s != %s' % (response_code, expected_code))
+            raise HTTPRequestWorkerError(
+                'Expected status %s but got %s' % (
+                    expected_code, response_code))
+        return True
 
     def process(self, channel, basic_deliver, properties, body, output):
         """
@@ -63,8 +108,14 @@ class HTTPRequestWorker(Worker):
                     'No valid subcommand given. Nothing to do!')
 
             cmd_method = None
-            if subcommand == '':
-                cmd_method = lambda: "Implement me"
+            if subcommand == 'Get':
+                cmd_method = self.request_get
+#            elif subcommand == 'Put':
+#                cmd_method = self.request_put
+#            elif subcommand == 'Post':
+#                cmd_method = self.request_post
+#            elif subcommand == 'Delete':
+#                cmd_method = self.request_delete
             else:
                 self.app_logger.warn(
                     'Could not find the implementation of subcommand %s' % (
