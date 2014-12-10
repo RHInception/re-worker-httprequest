@@ -17,6 +17,7 @@
 HTTP Request worker.
 """
 
+import base64
 import requests
 
 from reworker.worker import Worker
@@ -35,7 +36,7 @@ class HTTPRequestWorker(Worker):
     """
 
     #: allowed subcommands
-    subcommands = ('Get', 'Delete')
+    subcommands = ('Get', 'Delete', 'Put', 'Post')
     dynamic = []
 
     # Subcommand methods
@@ -93,6 +94,74 @@ class HTTPRequestWorker(Worker):
             raise HTTPRequestWorkerError(
                 'Missing input %s' % ke)
 
+    def request_put(self, body, corr_id, output):
+        """
+        Executes an HTTP PUT request.
+
+        Parameters:
+
+        * body: The message body structure
+        * corr_id: The correlation id of the message
+        * output: The output object back to the user
+        """
+        # Get needed variables
+        params = body.get('parameters', {})
+
+        try:
+            url = params['url']
+            content_type = params['contenttype']
+            content = params['content']
+
+            if params.get('b64encoded', False):
+                content = base64.decodestring(params['content'])
+
+            headers = {'content-type': content_type}
+            response = requests.put(url, data=content, headers=headers)
+            self._check_code(response.status_code, params)
+            return 'URL returned %s as expected.' % response.status_code
+        except requests.ConnectionError, ce:
+            self.app_logger.warn(
+                'Unable to connect to URL %s. Error: %s' % (url, ce))
+            raise HTTPRequestWorkerError(
+                'Could not connect to the requested URL.')
+        except KeyError, ke:
+            raise HTTPRequestWorkerError(
+                'Missing input %s' % ke)
+
+    def request_post(self, body, corr_id, output):
+        """
+        Executes an HTTP POST request.
+
+        Parameters:
+
+        * body: The message body structure
+        * corr_id: The correlation id of the message
+        * output: The output object back to the user
+        """
+        # Get needed variables
+        params = body.get('parameters', {})
+
+        try:
+            url = params['url']
+            content_type = params['contenttype']
+            content = params['content']
+
+            if params.get('b64encoded', False):
+                content = base64.decodestring(params['content'])
+
+            headers = {'content-type': content_type}
+            response = requests.post(url, data=content, headers=headers)
+            self._check_code(response.status_code, params)
+            return 'URL returned %s as expected.' % response.status_code
+        except requests.ConnectionError, ce:
+            self.app_logger.warn(
+                'Unable to connect to URL %s. Error: %s' % (url, ce))
+            raise HTTPRequestWorkerError(
+                'Could not connect to the requested URL.')
+        except KeyError, ke:
+            raise HTTPRequestWorkerError(
+                'Missing input %s' % ke)
+
     def _check_code(self, response_code, params):
         """
         Raises an HTTPRequestWorkerError if the expectation isn't met.\
@@ -103,7 +172,6 @@ class HTTPRequestWorker(Worker):
         """
         expected_code = int(params.get('code', 200))
         response_code = int(response_code)
-
         if response_code != expected_code:
             self.app_logger.debug('%s != %s' % (response_code, expected_code))
             raise HTTPRequestWorkerError(
@@ -137,10 +205,10 @@ class HTTPRequestWorker(Worker):
             cmd_method = None
             if subcommand == 'Get':
                 cmd_method = self.request_get
-#            elif subcommand == 'Put':
-#                cmd_method = self.request_put
-#            elif subcommand == 'Post':
-#                cmd_method = self.request_post
+            elif subcommand == 'Put':
+                cmd_method = self.request_put
+            elif subcommand == 'Post':
+                cmd_method = self.request_post
             elif subcommand == 'Delete':
                 cmd_method = self.request_delete
             else:
