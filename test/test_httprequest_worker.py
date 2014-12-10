@@ -245,3 +245,107 @@ class TestHTTPRequestWorker(TestCase):
             assert _get.called_once_with('http://127.0.0.1')
             assert self.app_logger.error.call_count == 1
             assert worker.send.call_args[0][2]['status'] == 'failed'
+
+    def test_request_delete(self):
+        """
+        Verify request_delete works as it should.
+        """
+        with nested(
+                mock.patch('pika.SelectConnection'),
+                mock.patch('replugin.httprequestworker.HTTPRequestWorker.notify'),
+                mock.patch('replugin.httprequestworker.HTTPRequestWorker.send'),
+                mock.patch('requests.delete')) as (_, _, _, _delete):
+
+            fake_response = requests.Response()
+            fake_response.status_code = 410
+            _delete.return_value = fake_response
+
+            worker = httprequestworker.HTTPRequestWorker(
+                MQ_CONF,
+                logger=self.app_logger,
+                config_file='conf/example.json')
+
+            worker._on_open(self.connection)
+            worker._on_channel_open(self.channel)
+
+            body = {
+                "parameters": {
+                    "command": "httprequest",
+                    "subcommand": "Delete",
+                    "url": "http://127.0.0.1",
+                    "code": 410,
+                },
+            }
+
+            # Execute the call
+            worker.process(
+                self.channel,
+                self.basic_deliver,
+                self.properties,
+                body,
+                self.logger)
+
+            assert _delete.called_once_with('http://127.0.0.1')
+            assert self.app_logger.error.call_count == 0
+            assert worker.send.call_args[0][2]['status'] == 'completed'
+
+    def test_request_delete_failure(self):
+        """
+        Verify request_delete fails properly.
+        """
+        with nested(
+                mock.patch('pika.SelectConnection'),
+                mock.patch('replugin.httprequestworker.HTTPRequestWorker.notify'),
+                mock.patch('replugin.httprequestworker.HTTPRequestWorker.send'),
+                mock.patch('requests.delete')) as (_, _, _, _delete):
+
+            fake_response = requests.Response()
+            fake_response.status_code = 400
+            _delete.return_value = fake_response
+
+            worker = httprequestworker.HTTPRequestWorker(
+                MQ_CONF,
+                logger=self.app_logger,
+                config_file='conf/example.json')
+
+            worker._on_open(self.connection)
+            worker._on_channel_open(self.channel)
+
+            body = {
+                "parameters": {
+                    "command": "httprequest",
+                    "subcommand": "Delete",
+                    "url": "http://127.0.0.1",
+                    "code": 200,
+                },
+            }
+
+            # execute the call
+            worker.process(
+                self.channel,
+                self.basic_deliver,
+                self.properties,
+                body,
+                self.logger)
+
+            assert _delete.called_once_with('http://127.0.0.1')
+            assert self.app_logger.error.call_count == 1
+            assert worker.send.call_args[0][2]['status'] == 'failed'
+
+            # Test for failed connections
+            _delete.reset_mock()
+            self.app_logger.error.reset_mock()
+            worker.send.reset_mock()
+            _delete.side_effect = requests.ConnectionError
+
+            # execute the call
+            worker.process(
+                self.channel,
+                self.basic_deliver,
+                self.properties,
+                body,
+                self.logger)
+
+            assert _delete.called_once_with('http://127.0.0.1')
+            assert self.app_logger.error.call_count == 1
+            assert worker.send.call_args[0][2]['status'] == 'failed'

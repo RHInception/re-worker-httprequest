@@ -35,7 +35,7 @@ class HTTPRequestWorker(Worker):
     """
 
     #: allowed subcommands
-    subcommands = ('Get', )
+    subcommands = ('Get', 'Delete')
     dynamic = []
 
     # Subcommand methods
@@ -55,6 +55,33 @@ class HTTPRequestWorker(Worker):
         try:
             url = params['url']
             response = requests.get(url)
+            self._check_code(response.status_code, params)
+            return 'URL returned %s as expected.' % response.status_code
+        except requests.ConnectionError, ce:
+            self.app_logger.warn(
+                'Unable to connect to URL %s. Error: %s' % (url, ce))
+            raise HTTPRequestWorkerError(
+                'Could not connect to the requested URL.')
+        except KeyError, ke:
+            raise HTTPRequestWorkerError(
+                'Missing input %s' % ke)
+
+    def request_delete(self, body, corr_id, output):
+        """
+        Executes an HTTP DELETE request.
+
+        Parameters:
+
+        * body: The message body structure
+        * corr_id: The correlation id of the message
+        * output: The output object back to the user
+        """
+        # Get needed variables
+        params = body.get('parameters', {})
+
+        try:
+            url = params['url']
+            response = requests.delete(url)
             self._check_code(response.status_code, params)
             return 'URL returned %s as expected.' % response.status_code
         except requests.ConnectionError, ce:
@@ -114,8 +141,8 @@ class HTTPRequestWorker(Worker):
 #                cmd_method = self.request_put
 #            elif subcommand == 'Post':
 #                cmd_method = self.request_post
-#            elif subcommand == 'Delete':
-#                cmd_method = self.request_delete
+            elif subcommand == 'Delete':
+                cmd_method = self.request_delete
             else:
                 self.app_logger.warn(
                     'Could not find the implementation of subcommand %s' % (
