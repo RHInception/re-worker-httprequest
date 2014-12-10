@@ -117,6 +117,7 @@ class HTTPRequestWorker(Worker):
 
             headers = {'content-type': content_type}
             response = requests.put(url, data=content, headers=headers)
+
             self._check_code(response.status_code, params)
             return 'URL returned %s as expected.' % response.status_code
         except requests.ConnectionError, ce:

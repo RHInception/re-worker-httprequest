@@ -181,7 +181,7 @@ class TestHTTPRequestWorker(TestCase):
                 body,
                 self.logger)
 
-            assert _get.called_once_with('http://127.0.0.1')
+            _get.assert_called_once_with('http://127.0.0.1')
             assert self.app_logger.error.call_count == 0
             assert worker.send.call_args[0][2]['status'] == 'completed'
 
@@ -224,12 +224,12 @@ class TestHTTPRequestWorker(TestCase):
                 body,
                 self.logger)
 
-            assert _get.called_once_with('http://127.0.0.1')
+            _get.assert_called_once_with('http://127.0.0.1')
             assert self.app_logger.error.call_count == 1
             assert worker.send.call_args[0][2]['status'] == 'failed'
 
             # Test for failed connections
-            _.get.reset_mock()
+            _get.reset_mock()
             self.app_logger.error.reset_mock()
             worker.send.reset_mock()
             _get.side_effect = requests.ConnectionError
@@ -242,7 +242,7 @@ class TestHTTPRequestWorker(TestCase):
                 body,
                 self.logger)
 
-            assert _get.called_once_with('http://127.0.0.1')
+            _get.assert_called_once_with('http://127.0.0.1')
             assert self.app_logger.error.call_count == 1
             assert worker.send.call_args[0][2]['status'] == 'failed'
 
@@ -285,7 +285,7 @@ class TestHTTPRequestWorker(TestCase):
                 body,
                 self.logger)
 
-            assert _delete.called_once_with('http://127.0.0.1')
+            _delete.assert_called_once_with('http://127.0.0.1')
             assert self.app_logger.error.call_count == 0
             assert worker.send.call_args[0][2]['status'] == 'completed'
 
@@ -328,7 +328,7 @@ class TestHTTPRequestWorker(TestCase):
                 body,
                 self.logger)
 
-            assert _delete.called_once_with('http://127.0.0.1')
+            _delete.assert_called_once_with('http://127.0.0.1')
             assert self.app_logger.error.call_count == 1
             assert worker.send.call_args[0][2]['status'] == 'failed'
 
@@ -346,7 +346,7 @@ class TestHTTPRequestWorker(TestCase):
                 body,
                 self.logger)
 
-            assert _delete.called_once_with('http://127.0.0.1')
+            _delete.assert_called_once_with('http://127.0.0.1')
             assert self.app_logger.error.call_count == 1
             assert worker.send.call_args[0][2]['status'] == 'failed'
 
@@ -391,7 +391,7 @@ class TestHTTPRequestWorker(TestCase):
                 body,
                 self.logger)
 
-            assert _put.called_once_with(
+            _put.assert_called_once_with(
                 'http://127.0.0.1',
                 data='{"test": "data"}',
                 headers={"content-type": "application/json"})
@@ -406,7 +406,7 @@ class TestHTTPRequestWorker(TestCase):
                 mock.patch('pika.SelectConnection'),
                 mock.patch('replugin.httprequestworker.HTTPRequestWorker.notify'),
                 mock.patch('replugin.httprequestworker.HTTPRequestWorker.send'),
-                mock.patch('requests.delete')) as (_, _, _, _put):
+                mock.patch('requests.put')) as (_, _, _, _put):
 
             fake_response = requests.Response()
             fake_response.status_code = 400
@@ -439,7 +439,11 @@ class TestHTTPRequestWorker(TestCase):
                 body,
                 self.logger)
 
-            assert _put.called_once_with('http://127.0.0.1')
+            _put.assert_called_once_with(
+                'http://127.0.0.1',
+                data='{"test": "data"}',
+                headers={"content-type": "application/json"})
+
             assert self.app_logger.error.call_count == 1
             assert worker.send.call_args[0][2]['status'] == 'failed'
 
@@ -457,7 +461,11 @@ class TestHTTPRequestWorker(TestCase):
                 body,
                 self.logger)
 
-            assert _put.called_once_with('http://127.0.0.1')
+            _put.assert_called_once_with(
+                'http://127.0.0.1',
+                data='{"test": "data"}',
+                headers={"content-type": "application/json"})
+
             assert self.app_logger.error.call_count == 1
             assert worker.send.call_args[0][2]['status'] == 'failed'
 
@@ -502,7 +510,7 @@ class TestHTTPRequestWorker(TestCase):
                 body,
                 self.logger)
 
-            assert _post.called_once_with(
+            _post.assert_called_once_with(
                 'http://127.0.0.1',
                 data='{"test": "data"}',
                 headers={"content-type": "application/json"})
@@ -517,7 +525,7 @@ class TestHTTPRequestWorker(TestCase):
                 mock.patch('pika.SelectConnection'),
                 mock.patch('replugin.httprequestworker.HTTPRequestWorker.notify'),
                 mock.patch('replugin.httprequestworker.HTTPRequestWorker.send'),
-                mock.patch('requests.delete')) as (_, _, _, _post):
+                mock.patch('requests.post')) as (_, _, _, _post):
 
             fake_response = requests.Response()
             fake_response.status_code = 400
@@ -550,7 +558,11 @@ class TestHTTPRequestWorker(TestCase):
                 body,
                 self.logger)
 
-            assert _post.called_once_with('http://127.0.0.1')
+            _post.assert_called_once_with(
+                'http://127.0.0.1',
+                data='{"test": "data"}',
+                headers={"content-type": "application/json"})
+
             assert self.app_logger.error.call_count == 1
             assert worker.send.call_args[0][2]['status'] == 'failed'
 
@@ -568,6 +580,10 @@ class TestHTTPRequestWorker(TestCase):
                 body,
                 self.logger)
 
-            assert _post.called_once_with('http://127.0.0.1')
+            _post.assert_called_once_with(
+                'http://127.0.0.1',
+                data='{"test": "data"}',
+                headers={"content-type": "application/json"})
+
             assert self.app_logger.error.call_count == 1
             assert worker.send.call_args[0][2]['status'] == 'failed'
